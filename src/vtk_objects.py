@@ -94,7 +94,7 @@ def create_well_line_actors(well_trajectories):
         if len(subset) < 2:
             continue
 
-        subset = subset.sort_values(by = "Z")
+        subset = subset.sort_values(by = "Z", ascending=False)
         
         points = vtk.vtkPoints()
         for _, row in subset.iterrows():
