@@ -34,7 +34,7 @@ def group_points_by_marker(polydata, n_colors):
 
 def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
     """Orienta y traslada un disco y sus líneas de manteo."""
-    oriented_disc, manteo_lines = orient_disc_with_manteo(base_disc, azimuth, dip)
+    oriented_disc, azimuth_poly, dip_transformed = orient_disc_with_manteo(base_disc, azimuth, dip)
 
     # Transform disco
     trans = vtk.vtkTransform()
@@ -44,15 +44,22 @@ def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
     tdisc.SetInputData(oriented_disc)
     tdisc.Update()
 
-    # Transform líneas
+    # Transform lines
     trans2 = vtk.vtkTransform()
     trans2.Translate(x, y, z)
     tlines = vtk.vtkTransformPolyDataFilter()
     tlines.SetTransform(trans2)
-    tlines.SetInputData(manteo_lines)
+    tlines.SetInputData(dip_transformed)
     tlines.Update()
+    
+    trans3 = vtk.vtkTransform()
+    trans3.Translate(x, y, z)
+    tlines_strike = vtk.vtkTransformPolyDataFilter()
+    tlines_strike.SetTransform(trans3)
+    tlines_strike.SetInputData(azimuth_poly)
+    tlines_strike.Update()
 
-    return tdisc.GetOutput(), tlines.GetOutput()
+    return tdisc.GetOutput(), tlines.GetOutput(), tlines_strike.GetOutput()
 
 # TO TEST
 
@@ -75,42 +82,57 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     tf_filter.Update()
     oriented_disc = tf_filter.GetOutput()
 
-    # --- Crear línea del dip (dentro del disco) ---
-    pts = vtk.vtkPoints()
-    lines = vtk.vtkCellArray()
+    # --- 2. Crear la línea del rumbo (strike line) ---
+    # La línea del rumbo es horizontal (en la superficie del disco antes de rotar)
+    pts_strike = vtk.vtkPoints()
+    lines_strike = vtk.vtkCellArray()
 
-    id0 = pts.InsertNextPoint(0.0, 0.0, 0.0)  # centro
+    id0 = pts_strike.InsertNextPoint(-radius * 0.9, 0.0, 0.0)
+    id1 = pts_strike.InsertNextPoint(radius * 0.9, 0.0, 0.0)
 
-    # Longitud de la línea: hasta el borde del disco
-    length = radius * 0.9  # un poco menor al radio
+    line_strike = vtk.vtkLine()
+    line_strike.GetPointIds().SetId(0, id0)
+    line_strike.GetPointIds().SetId(1, id1)
+    lines_strike.InsertNextCell(line_strike)
 
-    # La dirección del dip: 90° a la derecha del rumbo
-    az_dip = -90 
+    azimuth_poly = vtk.vtkPolyData()
+    azimuth_poly.SetPoints(pts_strike)
+    azimuth_poly.SetLines(lines_strike)
+    
+    tf_strike = vtk.vtkTransformPolyDataFilter()
+    tf_strike.SetTransform(transform)
+    tf_strike.SetInputData(azimuth_poly)
+    tf_strike.Update()
+    azimuth_transformed = tf_strike.GetOutput()
 
-    # Coordenadas del punto final dentro del disco (hacia abajo en Z)
-    p1 = (length * np.sin(np.radians(az_dip)),
-          length * np.cos(np.radians(az_dip)),
-          -length * np.sin(np.radians(dip)))
+    # --- 3. Crear la línea del manteo (dip line) ---
+    # En el disco sin rotar, el manteo está perpendicular al rumbo (eje Y)
+    pts_dip = vtk.vtkPoints()
+    lines_dip = vtk.vtkCellArray()
 
-    id1 = pts.InsertNextPoint(p1)
+    # En el plano XY del disco: Y perpendicular al strike
+    id0d = pts_dip.InsertNextPoint(0.0, -radius*0.5, 0.0)
+    id1d = pts_dip.InsertNextPoint(0.0, 0.0, 0.0)
 
-    line = vtk.vtkLine()
-    line.GetPointIds().SetId(0, id0)
-    line.GetPointIds().SetId(1, id1)
-    lines.InsertNextCell(line)
+    line_dip = vtk.vtkLine()
+    line_dip.GetPointIds().SetId(0, id0d)
+    line_dip.GetPointIds().SetId(1, id1d)
+    lines_dip.InsertNextCell(line_dip)
 
-    manteo_poly = vtk.vtkPolyData()
-    manteo_poly.SetPoints(pts)
-    manteo_poly.SetLines(lines)
+    dip_poly = vtk.vtkPolyData()
+    dip_poly.SetPoints(pts_dip)
+    dip_poly.SetLines(lines_dip)
 
-    # Aplicar la misma rotación al manteo
-    tf2 = vtk.vtkTransformPolyDataFilter()
-    tf2.SetTransform(transform)
-    tf2.SetInputData(manteo_poly)
-    tf2.Update()
-    manteo_transformed = tf2.GetOutput()
+    # --- 4. Aplicar la misma rotación a ambas líneas ---
+    tf = vtk.vtkTransformPolyDataFilter()
+    tf.SetTransform(transform)
+    tf.SetInputData(dip_poly)
+    tf.Update()
+    dip_transformed = tf.GetOutput()
 
-    return oriented_disc, manteo_transformed
+    return oriented_disc, azimuth_transformed, dip_transformed
+
+# TESTED
 
 def create_actor(polydata, color = None, line = False, line_width = 2.0):
     """ Create a VTK actor from polydata, configuring its color and style"""

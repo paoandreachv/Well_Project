@@ -67,9 +67,10 @@ def create_filledpolygon_actor(polydata, unique_markers, radius=100, resolution=
         append_lines = vtk.vtkAppendPolyData()
 
         for (x, y, z, azimuth, dip) in points:
-            disc_geom, lines_geom = detailed_functions.create_transformed_geometry(base_disc_output, x, y, z, azimuth, dip)
+            disc_geom, line_az_geom, line_dip_geom = detailed_functions.create_transformed_geometry(base_disc_output, x, y, z, azimuth, dip)
             append_discs.AddInputData(disc_geom)
-            append_lines.AddInputData(lines_geom)
+            append_lines.AddInputData(line_az_geom)
+            append_lines.AddInputData(line_dip_geom)
 
         append_discs.Update()
         append_lines.Update()
