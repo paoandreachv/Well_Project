@@ -27,13 +27,13 @@ def main():
     corner_y -= offset
 
     # Create wind rose
-    #wind_rose_actors = visualization.create_wind_rose(center=(corner_x, corner_y, corner_z), size=1000)
+    wind_rose_actors = visualization.create_wind_rose(center=(corner_x, corner_y, corner_z), size=1000)
 
     # Setup visualization
     renderer = visualization.create_renderer()
     
     # Add actors to renderer
-    for actor in point_actors + line_actors: # + wind_rose_actors:
+    for actor in point_actors + line_actors + wind_rose_actors:
         renderer.AddActor(actor)
 
     render_window = visualization.create_render_window(renderer)
