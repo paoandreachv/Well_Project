@@ -71,7 +71,7 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     El dip cae 90° a la derecha del azimut (convención geológica).
     """
 
-    # --- Rotar el disco ---
+    # Rotar el disco
     transform = vtk.vtkTransform()
     transform.RotateZ(azimuth)   # azimut: dirección del rumbo
     transform.RotateX(dip)       # dip: inclinación desde la horizontal
@@ -82,7 +82,7 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     tf_filter.Update()
     oriented_disc = tf_filter.GetOutput()
 
-    # --- 2. Crear la línea del rumbo (strike line) ---
+    # Strike line
     # La línea del rumbo es horizontal (en la superficie del disco antes de rotar)
     pts_strike = vtk.vtkPoints()
     lines_strike = vtk.vtkCellArray()
@@ -105,7 +105,7 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     tf_strike.Update()
     azimuth_transformed = tf_strike.GetOutput()
 
-    # --- 3. Crear la línea del manteo (dip line) ---
+    # Dip line
     # En el disco sin rotar, el manteo está perpendicular al rumbo (eje Y)
     pts_dip = vtk.vtkPoints()
     lines_dip = vtk.vtkCellArray()
@@ -123,7 +123,7 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     dip_poly.SetPoints(pts_dip)
     dip_poly.SetLines(lines_dip)
 
-    # --- 4. Aplicar la misma rotación a ambas líneas ---
+    # Aplicar la misma rotación a ambas líneas
     tf = vtk.vtkTransformPolyDataFilter()
     tf.SetTransform(transform)
     tf.SetInputData(dip_poly)

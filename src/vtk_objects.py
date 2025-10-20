@@ -2,8 +2,6 @@ import vtk, random, numpy as np
 import src.detailed_functions as detailed_functions
 from vtk.util import numpy_support #type: ignore
 
-# TO TEST
-
 def create_points(well_data):
     """ Creates VTK points from well coordinates """
     coords = well_data[["X", "Y", "Z"]].to_numpy(dtype=float)
@@ -38,6 +36,8 @@ def create_points(well_data):
     polydata.GetPointData().SetActiveScalars("Marker_fault")
     
     return polydata, unique_markers
+
+# TO TEST
 
 def create_filledpolygon_actor(polydata, unique_markers, radius=100, resolution=40,
                                line_color=(0, 0, 0), line_width=2.0):
