@@ -1,15 +1,9 @@
-"""
-well_data.py
-"""
-
 import pandas as pd
 import glob
 import os
-import vtk
 
 
-# Open a .csv file
-
+# Open a .csv file and a .txt file containing well data and well trajectories respectively
 file_path = ("C:/Users/paope/Documents/Intercambio/Proyecto Octubre - Noviembre/"
              "WellVisualisationProject/WellVisualisationProject/Observations.csv")
 
@@ -24,17 +18,16 @@ def load_well_trajectories():
     """ Loads well trajectories data from a .txt and returns a dataframe """
     return pd.read_csv(file_txt, sep=r'\s+')
 
-# Folder path
+# Folder path for edge .csv files
 folder_path = os.path.join("C:/Users/paope/Documents/Intercambio/Proyecto Octubre - Noviembre/",
                            "WellVisualisationProject/WellVisualisationProject/edges")
 
-# Get all .csv files -- CHECK THE ENTIRE PROCCESS BECAUSE IT SEEMS TO NOT WORK PROPERLY
+# Get all .csv files in the folder
 csv_files = glob.glob(os.path.join(folder_path, "*.csv"))
 
-# Read each file into a DataFrame
+# Read each file and store DataFrames in a list
 edges = []
 for file in csv_files:
     df = pd.read_csv(file)
     edges.append(df)
-        
 

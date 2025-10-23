@@ -1,4 +1,4 @@
-import vtk, random, numpy as np
+import vtk
 import src.detailed_functions as detailed_functions
 from vtk.util import numpy_support #type: ignore
 
@@ -28,10 +28,12 @@ def create_points(well_data):
     
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
+    
     # Associate the set of values with the points I already have in polydata
     polydata.GetPointData().AddArray(marker_fault_array)
     polydata.GetPointData().AddArray(azimiuth_array)
     polydata.GetPointData().AddArray(dip_array)
+    
     # Indicate which array will be used as the active array (for coloring)
     polydata.GetPointData().SetActiveScalars("Marker_fault")
     
@@ -41,17 +43,14 @@ def create_points(well_data):
 
 def create_filledpolygon_actor(polydata, unique_markers, radius=100, resolution=40,
                                line_color=(0, 0, 0), line_width=2.0):
-    """
-    Crea actores de discos orientados según Azimuth y Dip, y actores separados para
-    las líneas de rumbo/manteo para que sean siempre visibles.
-    Devuelve una lista de actores (dos por marker: disco + líneas).
-    """
+    """ Create actors for oriented discs by Azimuth and Dip values, and separate actors for
+    the strike/dip lines """
     n_colors = len(unique_markers)
     color_table = detailed_functions.generate_distinct_colors(n_colors)
     marker_to_points = detailed_functions.group_points_by_marker(polydata, n_colors)
     actors = []
 
-    # Base del disco que se reutiliza
+    # Base's disc is reused for each well point
     base_disc = vtk.vtkRegularPolygonSource()
     base_disc.SetCenter(0.0, 0.0, 0.0)
     base_disc.SetRadius(radius)
@@ -75,12 +74,12 @@ def create_filledpolygon_actor(polydata, unique_markers, radius=100, resolution=
         append_discs.Update()
         append_lines.Update()
 
-        # Actor disco
+        # Disc actor
         disc_color = color_table.GetTableValue(marker_index)
         disc_actor = detailed_functions.create_actor(append_discs.GetOutput(), color=disc_color, line=False)
         actors.append(disc_actor)
 
-        # Actor líneas
+        # Line actor
         line_actor = detailed_functions.create_actor(append_lines.GetOutput(), color=line_color, line=True, line_width=line_width)
         actors.append(line_actor)
 

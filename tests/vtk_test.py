@@ -39,6 +39,7 @@ dip = well_data["Dip"].to_numpy(dtype=float)
 vtk_dip = numpy_support.vtk_to_numpy(polydata.GetPointData().GetArray("Dip"))
 assert np.allclose(dip, vtk_dip), "Dip values does not match"
 
+# ----------------------------------------------------------------------------------------------------------------------------
 well_trajectories = load_well_trajectories()
 actors = create_well_line_actors(well_trajectories)
 

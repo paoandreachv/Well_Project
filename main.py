@@ -2,6 +2,7 @@ import src.well_data as data
 import src.vtk_objects as vtk_objects
 import src.visualization as visualization
 
+
 def main():
     # Load data
     well_data = data.load_well_data()
@@ -20,7 +21,7 @@ def main():
 
     corner_x = max_x
     corner_y = min_y
-    corner_z = 25
+    corner_z = min_z
 
     offset = 0.2 * (max_x - min_x)
     corner_x += offset

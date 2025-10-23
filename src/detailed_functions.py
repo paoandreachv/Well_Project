@@ -1,4 +1,4 @@
-import random, vtk, numpy as np
+import random, vtk
 
 def generate_distinct_colors(n_colors):
     """ Build a random color table for each marker """
@@ -61,7 +61,6 @@ def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
 
     return tdisc.GetOutput(), tlines.GetOutput(), tlines_strike.GetOutput()
 
-# TO TEST
 
 def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
     """ Orients a disc according to azimuth and dip values"""
@@ -125,7 +124,6 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=50):
 
     return oriented_disc, azimuth_transformed, dip_transformed
 
-# TESTED
 
 def create_actor(polydata, color = None, line = False, line_width = 2.0):
     """ Create a VTK actor from polydata, configuring its color and style"""
