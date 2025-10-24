@@ -4,6 +4,12 @@ from visualization import create_renderer, create_render_window, create_interact
 import well_data as wd
 from vtk.util import numpy_support #type: ignore
 
+# Hay que activar cada grafo por separado -> hagamos que el usuario pueda elegir qué grafo activar
+# Verificar las líneas de rumbo y manteo, pues parecieran estar chuecas 
+# Ver si podemos fijar la rosa de los vientos en una esquina y que rote cuando rotemos la escena, pero que no se mueva de lugar
+# Añadir potencial con marca de los números que también sea fijo
+# Se tiene que agregar lo de los grafos en la misma ventana y que se le de la opción de si quiere agrearlos o no, y cuál quisiera agregar
+
 # -----------------------------
 # 1️⃣ Función para crear puntos
 # -----------------------------

@@ -41,7 +41,7 @@ def create_points(well_data):
 
 # TO TEST
 
-def create_filledpolygon_actor(polydata, unique_markers, radius=100, resolution=40,
+def create_filledpolygon_actor(polydata, unique_markers, radius=200, resolution=40,
                                line_color=(0, 0, 0), line_width=2.0):
     """ Create actors for oriented discs by Azimuth and Dip values, and separate actors for
     the strike/dip lines """
