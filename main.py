@@ -1,13 +1,22 @@
 import src.well_data as data
 import src.vtk_objects as vtk_objects
 import src.visualization as visualization
+import src.edges as edges_mod
 
 
 def main():
     # Load data
     well_data = data.load_well_data()
     well_trajectories = data.load_well_trajectories()
+    scalar_bar, lut = visualization.create_potential_legend()
 
+
+    edges_actors = edges_mod.select_edges(
+        wd= data,  # módulo donde está tu lista wd.edges
+        connect_edges_with_potential=edges_mod.connect_edges_with_potential,
+        lut = lut
+    )
+    
     # Create geometry
     polydata, unique_markers = vtk_objects.create_points(well_data)
     point_actors = vtk_objects.create_filledpolygon_actor(polydata, unique_markers)
@@ -34,9 +43,11 @@ def main():
     renderer = visualization.create_renderer()
     
     # Add actors to renderer
-    for actor in point_actors + line_actors + wind_rose_actors:
+    for actor in point_actors + line_actors + edges_actors + wind_rose_actors:
         renderer.AddActor(actor)
 
+    renderer.AddViewProp(scalar_bar)
+    
     render_window = visualization.create_render_window(renderer)
     interactor = visualization.create_interactor(render_window)
 
