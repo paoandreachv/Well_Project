@@ -19,7 +19,7 @@ def main():
     
     # Create geometry
     polydata, unique_markers = vtk_objects.create_points(well_data)
-    point_actors = vtk_objects.create_filledpolygon_actor(polydata, unique_markers)
+    point_actors = vtk_objects.create_disc_line_actors(polydata, unique_markers)
     line_actors = vtk_objects.create_well_line_actors(well_trajectories)
     
     # Calculate center of wind rose

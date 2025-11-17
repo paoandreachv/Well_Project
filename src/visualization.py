@@ -24,22 +24,22 @@ def create_interactor(render_window):
     return interactor
 
 def create_potential_legend():
-    """Crea y retorna una barra de color (leyenda) para el potencial."""
-    # Crear la tabla de colores (azul → rojo)
+    """Creates and return a color bar (legend) for the potencial."""
+    # Create the colormap (blue to red)
     lut = vtk.vtkLookupTable()
     lut.SetNumberOfTableValues(256)
     lut.SetTableRange(0.0, 1.0)
-    lut.SetHueRange(0.667, 0.0)  # azul → rojo
+    lut.SetHueRange(0.667, 0.0) 
     lut.Build()
 
-    # Crear barra de color
+    # Create color bar
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(lut)
     scalar_bar.SetTitle("Potential")
     scalar_bar.SetNumberOfLabels(5)
     scalar_bar.SetMaximumWidthInPixels(100)
     scalar_bar.SetMaximumHeightInPixels(500)
-    scalar_bar.SetPosition(0.88, 0.1)  # posición relativa en la ventana
+    scalar_bar.SetPosition(0.88, 0.1)  # relative position in the window
     scalar_bar.SetWidth(0.08)
     scalar_bar.SetHeight(0.8)
 

@@ -1,5 +1,18 @@
 import random, vtk, math
 
+##################################################################
+# -----------------------USEFUL FUNCTIONS----------------------- #
+##################################################################
+
+def normalize(v):
+    x, y, z = v
+    n = math.sqrt(x*x + y*y + z*z)
+    return (x/n, y/n, z/n) if n != 0 else (0,0,0)
+
+##################################################################
+# ---------------------------COLORS----------------------------- #
+##################################################################
+
 def generate_distinct_colors(n_colors):
     """ Build a random color table for each marker """
     # Creates a color table to assign a color to each marker
@@ -8,17 +21,26 @@ def generate_distinct_colors(n_colors):
     table.Build()
     # The colors will be the same each time the code is run
     random.seed(0)  
-    
     for i in range(n_colors):
         table.SetTableValue(i, random.random(), random.random(), random.random(), 1.0)
+        
     return table
 
+##################################################################
+# ------------------------GROUP POINTS-------------------------- #
+##################################################################
+
+def read_points(polydata):
+    """ Read points and their attributes from vtkPolyData """
+    marker = polydata.GetPointData().GetArray("Marker_fault")
+    az = polydata.GetPointData().GetArray("Azimuth")
+    dp = polydata.GetPointData().GetArray("Dip")
+    
+    return marker, az, dp
 
 def group_points_by_marker(polydata, n_colors):
     """ Group the polydata points by marker_fault """
-    marker_array = polydata.GetPointData().GetArray("Marker_fault")
-    azimuth_array = polydata.GetPointData().GetArray("Azimuth")
-    dip_array = polydata.GetPointData().GetArray("Dip")
+    marker_array, azimuth_array, dip_array = read_points(polydata)
     
     # Create a dictionary to hold points for each marker
     marker_to_points = {i: [] for i in range(n_colors)}
@@ -30,115 +52,114 @@ def group_points_by_marker(polydata, n_colors):
         azimuth = azimuth_array.GetValue(i)
         dip = dip_array.GetValue(i)
         marker_to_points[m].append((x, y, z, azimuth, dip)) 
+        
     return marker_to_points
 
-def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
-    """Moves a disc and its strike and dip lines based on coordinates"""
-    oriented_disc, azimuth_poly, dip_transformed = orient_disc_with_manteo(base_disc, azimuth, dip)
+##################################################################
+# ---------------------------LINES------------------------------ #
+##################################################################
 
-    # Transform disc
-    trans = vtk.vtkTransform()
-    trans.Translate(x, y, z)
-    tdisc = vtk.vtkTransformPolyDataFilter()
-    tdisc.SetTransform(trans)
-    tdisc.SetInputData(oriented_disc)
-    tdisc.Update()
-
-    # Transform lines
-    tlines = vtk.vtkTransformPolyDataFilter()
-    tlines.SetTransform(trans)
-    tlines.SetInputData(dip_transformed)
-    tlines.Update()
+def build_line(p0, p1):
+    """ Return a vtkPolyData representing a single line from p0 to p1 """
+    points = vtk.vtkPoints()
+    lines = vtk.vtkCellArray()
+    id0 = points.InsertNextPoint(*p0) ### que hace el asterisco 
+    id1 = points.InsertNextPoint(*p1) 
+    line = vtk.vtkLine()
+    line.GetPointIds().SetId(0, id0)
+    line.GetPointIds().SetId(1, id1)
+    lines.InsertNextCell(line)
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    polydata.SetLines(lines)
     
-    tlines_strike = vtk.vtkTransformPolyDataFilter()
-    tlines_strike.SetTransform(trans)
-    tlines_strike.SetInputData(azimuth_poly)
-    tlines_strike.Update()
+    return polydata
 
-    return tdisc.GetOutput(), tlines.GetOutput(), tlines_strike.GetOutput()
+def create_strike_dip_lines(radius=1.0):
+    """ Create and return base strike and dip lines as vtkPolyData """
+    epsilon = max(radius * 1e-3, 0.01)
 
-def normalize(v):
-    x, y, z = v
-    n = math.sqrt(x*x + y*y + z*z)
-    return (x/n, y/n, z/n) if n != 0 else (0,0,0)
+    strike = build_line((-radius, 0.0, epsilon), (radius, 0.0, epsilon))
+    dip = build_line((0.0, 0.0, epsilon), (0.0, radius, epsilon))
 
-def orient_disc_with_manteo(polydata, azimuth, dip, radius=1):
-    """ Orients a disc according to azimuth and dip values"""
-        
-    # Orients the disc
+    return strike, dip
+
+##################################################################
+# ------------------------ORIENTATION--------------------------- #
+##################################################################
+
+def strike_vector(azimuth):
+    """ Compute a horizontal strike vector from azimuth in degrees and return normalized vector"""
     azimuth_rad = math.radians(azimuth)
-    strike_vec = (math.sin(azimuth_rad), math.cos(azimuth_rad), 0)
-    strike_vec = normalize(strike_vec)
-    
+    strike_vec = normalize((math.sin(azimuth_rad), math.cos(azimuth_rad), 0.0))
+    return strike_vec
+
+def rotate_vector_about_z(v, angle_deg):
+    """ Rotate a vector v about Z by angle_deg and return normalized rotated vector """
     az_transform = vtk.vtkTransform()
-    az_transform.RotateZ(azimuth)
+    az_transform.RotateZ(angle_deg)
     
-    p = [strike_vec[0], strike_vec[1], strike_vec[2], 1.0]
+    p = [v[0], v[1], v[2], 1.0]
     mat = az_transform.GetMatrix()
-    rotated_strike = [
+    rotated = [
         mat.GetElement(0,0)*p[0] + mat.GetElement(0,1)*p[1] + mat.GetElement(0,2)*p[2],
         mat.GetElement(1,0)*p[0] + mat.GetElement(1,1)*p[1] + mat.GetElement(1,2)*p[2],
         mat.GetElement(2,0)*p[0] + mat.GetElement(2,1)*p[1] + mat.GetElement(2,2)*p[2],
     ]
-    rotated_strike = normalize(rotated_strike)
-    
-    transform = vtk.vtkTransform()
-    transform.RotateZ(azimuth)
-    transform.RotateWXYZ(dip, *rotated_strike)   
+    return normalize(rotated)
 
+def apply_transform(polydata, transform):
+    """ Apply a vtkTransform to a vtkPolyData and return the transformed polydata """
     tf_filter = vtk.vtkTransformPolyDataFilter()
     tf_filter.SetTransform(transform)
     tf_filter.SetInputData(polydata)
     tf_filter.Update()
-    oriented_disc = tf_filter.GetOutput()
-
-    # Lines
-    strike_line, dip_line = create_strike_dip_lines(radius)
+    transformed_polydata = tf_filter.GetOutput()
     
-    tf_strike = vtk.vtkTransformPolyDataFilter()
-    tf_strike.SetTransform(transform)
-    tf_strike.SetInputData(strike_line)
-    tf_strike.Update()
-    azimuth_transformed = tf_strike.GetOutput()
+    return transformed_polydata
     
-    tf_dip = vtk.vtkTransformPolyDataFilter()
-    tf_dip.SetTransform(transform)
-    tf_dip.SetInputData(dip_line)
-    tf_dip.Update()
-    dip_transformed = tf_dip.GetOutput()
 
-    return oriented_disc, azimuth_transformed, dip_transformed
+def orient_disc_with_manteo(polydata, azimuth, dip, radius=1):
+    """ Orients a disc according to azimuth and dip values"""
 
-def create_strike_dip_lines(radius=1.0):
-    """Crea las líneas base (strike y dip)."""
-    # Strike line (X axis)
-    pts_strike = vtk.vtkPoints()
-    lines_strike = vtk.vtkCellArray()
-    id0 = pts_strike.InsertNextPoint(-radius, 0.0, 0.0)
-    id1 = pts_strike.InsertNextPoint(radius, 0.0, 0.0)
-    line_strike = vtk.vtkLine()
-    line_strike.GetPointIds().SetId(0, id0)
-    line_strike.GetPointIds().SetId(1, id1)
-    lines_strike.InsertNextCell(line_strike)
-    azimuth_poly = vtk.vtkPolyData()
-    azimuth_poly.SetPoints(pts_strike)
-    azimuth_poly.SetLines(lines_strike)
+    strike_vec = strike_vector(azimuth)
+    rotated_strike = rotate_vector_about_z(strike_vec, azimuth)
+    
+    tf = vtk.vtkTransform()
+    tf.RotateZ(azimuth)
+    tf.RotateWXYZ(dip, rotated_strike[0], rotated_strike[1], rotated_strike[2])
+    
+    oriented_disc = apply_transform(polydata, tf)
+    
+    strike_base, dip_base = create_strike_dip_lines(radius)
+    strike_oriented = apply_transform(strike_base, tf)
+    dip_oriented = apply_transform(dip_base, tf)
 
-    # Dip line (Y axis)
-    pts_dip = vtk.vtkPoints()
-    lines_dip = vtk.vtkCellArray()
-    id0d = pts_dip.InsertNextPoint(0.0, 0.0, 0.0)
-    id1d = pts_dip.InsertNextPoint(0.0, radius, 0.0)
-    line_dip = vtk.vtkLine()
-    line_dip.GetPointIds().SetId(0, id0d)
-    line_dip.GetPointIds().SetId(1, id1d)
-    lines_dip.InsertNextCell(line_dip)
-    dip_poly = vtk.vtkPolyData()
-    dip_poly.SetPoints(pts_dip)
-    dip_poly.SetLines(lines_dip)
+    return oriented_disc, strike_oriented, dip_oriented
 
-    return azimuth_poly, dip_poly
+##################################################################
+# --------------------TRANSFORM GEOMETRY------------------------ #
+##################################################################
 
+def translate(polydata, x, y, z):
+    """ Returns a translated copy of the given polydata"""
+    T = vtk.vtkTransform()
+    T.Translate(x, y, z)
+    return apply_transform(polydata, T)
+    
+def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
+    """Moves a disc and its strike and dip lines based on coordinates"""
+    oriented_disc, oriented_strike, oriented_dip = orient_disc_with_manteo(base_disc, azimuth, dip)
+
+    disc_t = translate(oriented_disc, x, y, z)
+    dip_t = translate(oriented_dip, x, y, z)
+    strike_t = translate(oriented_strike, x, y, z)
+
+    return disc_t, strike_t, dip_t
+
+##################################################################
+# ---------------------------ACTOR------------------------------ #
+##################################################################
 
 def create_actor(polydata, color = None, line = False, line_width = 2.0):
     """ Create a VTK actor from polydata, configuring its color and style"""
@@ -154,6 +175,7 @@ def create_actor(polydata, color = None, line = False, line_width = 2.0):
             actor.GetProperty().SetLineWidth(line_width)
             actor.GetProperty().SetRepresentationToWireframe()
             actor.GetProperty().LightingOff()
+            actor.GetProperty().SetColor(color[:3])
         else:
             actor.GetProperty().SetOpacity(0.9)
             actor.GetProperty().EdgeVisibilityOff()
