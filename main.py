@@ -10,9 +10,8 @@ def main():
     well_trajectories = data.load_well_trajectories()
     scalar_bar, lut = visualization.create_potential_legend()
 
-
     edges_actors = edges_mod.select_edges(
-        wd= data,  # módulo donde está tu lista wd.edges
+        wd= data,  
         connect_edges_with_potential=edges_mod.connect_edges_with_potential,
         lut = lut
     )

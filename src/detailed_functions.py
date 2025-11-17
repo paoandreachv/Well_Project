@@ -63,7 +63,7 @@ def build_line(p0, p1):
     """ Return a vtkPolyData representing a single line from p0 to p1 """
     points = vtk.vtkPoints()
     lines = vtk.vtkCellArray()
-    id0 = points.InsertNextPoint(*p0) ### que hace el asterisco 
+    id0 = points.InsertNextPoint(*p0)  
     id1 = points.InsertNextPoint(*p1) 
     line = vtk.vtkLine()
     line.GetPointIds().SetId(0, id0)
@@ -77,10 +77,8 @@ def build_line(p0, p1):
 
 def create_strike_dip_lines(radius=1.0):
     """ Create and return base strike and dip lines as vtkPolyData """
-    epsilon = max(radius * 1e-3, 0.01)
-
-    strike = build_line((-radius, 0.0, epsilon), (radius, 0.0, epsilon))
-    dip = build_line((0.0, 0.0, epsilon), (0.0, radius, epsilon))
+    strike = build_line((-radius, 0.0, 0.0), (radius, 0.0, 0.0))
+    dip = build_line((0.0, 0.0, 0.0), (0.0, radius, 0.0))
 
     return strike, dip
 
@@ -155,7 +153,7 @@ def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
     dip_t = translate(oriented_dip, x, y, z)
     strike_t = translate(oriented_strike, x, y, z)
 
-    return disc_t, strike_t, dip_t
+    return disc_t, dip_t, strike_t
 
 ##################################################################
 # ---------------------------ACTOR------------------------------ #
@@ -175,7 +173,6 @@ def create_actor(polydata, color = None, line = False, line_width = 2.0):
             actor.GetProperty().SetLineWidth(line_width)
             actor.GetProperty().SetRepresentationToWireframe()
             actor.GetProperty().LightingOff()
-            actor.GetProperty().SetColor(color[:3])
         else:
             actor.GetProperty().SetOpacity(0.9)
             actor.GetProperty().EdgeVisibilityOff()

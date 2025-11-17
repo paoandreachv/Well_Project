@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import vtk, math
-from src.detailed_functions import generate_distinct_colors, group_points_by_marker, create_actor
+from src.detailed_functions import generate_distinct_colors, group_points_by_marker, create_actor, read_points, build_line, create_strike_dip_lines, strike_vector
 from src.vtk_objects import create_points
 from src.well_data import load_well_data
 
@@ -86,3 +86,106 @@ r3, g3, b3 = prop3.GetColor()
 assert math.isclose(r3, 1.0, abs_tol=1e-6)
 assert math.isclose(g3, 1.0, abs_tol=1e-6)
 assert math.isclose(b3, 1.0, abs_tol=1e-6)
+
+###################################################################
+# ----------------generate_distinct_colors----------------------- #
+###################################################################
+
+ct = generate_distinct_colors(5)
+assert isinstance(ct, vtk.vtkLookupTable)
+assert ct.GetNumberOfTableValues() == 5
+
+###################################################################
+# ----------------sintetic data for testing---------------------- #
+###################################################################
+
+poly = vtk.vtkPolyData()
+pts = vtk.vtkPoints()
+marker_arr = vtk.vtkIntArray(); marker_arr.SetName("Marker_fault")
+az_arr = vtk.vtkFloatArray(); az_arr.SetName("Azimuth")
+dp_arr = vtk.vtkFloatArray(); dp_arr.SetName("Dip")
+
+
+for i in range(5):
+    pts.InsertNextPoint(-i, i*2, i)
+    marker_arr.InsertNextValue(i % 2)
+    az_arr.InsertNextValue(float(i*10))
+    dp_arr.InsertNextValue(float(i*5))
+
+
+poly.SetPoints(pts)
+poly.GetPointData().AddArray(marker_arr)
+poly.GetPointData().AddArray(az_arr)
+poly.GetPointData().AddArray(dp_arr)
+
+###################################################################
+# ------------------------read points---------------------------- #
+###################################################################
+
+m, a, d = read_points(poly)
+assert m.GetNumberOfValues() == 5
+assert a.GetNumberOfValues() == 5
+assert d.GetNumberOfValues() == 5
+
+###################################################################
+# ----------------group points by marker----------------------- #
+###################################################################
+
+g = group_points_by_marker(poly, 2)
+assert set(g.keys()) == {0,1}
+for k,v in g.items():
+    for tup in v:
+        assert len(tup) == 5
+        assert all(isinstance(t, float) for t in tup)
+        
+###################################################################
+# -------------------------build line---------------------------- #
+###################################################################
+
+line_poly = build_line((0,0,0), (1,1,1))
+assert isinstance(line_poly, vtk.vtkPolyData)
+assert line_poly.GetNumberOfPoints() == 2
+
+###################################################################
+# -------------------create strike dip lines--------------------- #
+###################################################################
+
+s,d = create_strike_dip_lines(2)
+assert s.GetNumberOfPoints() == 2
+assert d.GetNumberOfPoints() == 2
+
+###################################################################
+# ------------------------strike vector-------------------------- #
+###################################################################
+
+sv = strike_vector(30)
+assert len(sv) == 3
+assert math.isclose(math.sqrt(sv[0]**2 + sv[1]**2 + sv[2]**2), 1, rel_tol=1e-6)
+
+###################################################################
+# -------------------rotate vector about z----------------------- #
+###################################################################
+from src.detailed_functions import rotate_vector_about_z, apply_transform, orient_disc_with_manteo, translate, normalize
+
+rv = rotate_vector_about_z((1,0,0), 90)
+assert rv == (0.0, 1.0, 0.0)
+assert isinstance(rv, tuple)
+
+###################################################################
+# ---------------------apply transform--------------------------- #
+###################################################################
+
+T = vtk.vtkTransform(); T.Translate(1,2,3)
+poly2 = apply_transform(line_poly, T)
+assert poly2.GetPoint(0)[0] == line_poly.GetPoint(0)[0] + 1
+
+###################################################################
+# --------------------orient disc with manteo-------------------- #
+###################################################################
+
+disc = vtk.vtkDiskSource(); disc.Update()
+disc_pd = disc.GetOutput()
+translated = translate(disc_pd, 5,5,5)
+print(translated.GetPoints())
+assert isinstance(translated, vtk.vtkPolyData)
+
