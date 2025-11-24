@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import vtk, math
-from src.detailed_functions import generate_distinct_colors, group_points_by_marker, create_actor, read_points, build_line, create_strike_dip_lines, strike_vector
+from src.geometry import generate_distinct_colors, group_points_by_marker, create_actor, read_points, build_line, create_strike_dip_lines, strike_vector
 from src.vtk_objects import create_points
 from src.well_data import load_well_data
 
@@ -165,7 +165,7 @@ assert math.isclose(math.sqrt(sv[0]**2 + sv[1]**2 + sv[2]**2), 1, rel_tol=1e-6)
 ###################################################################
 # -------------------rotate vector about z----------------------- #
 ###################################################################
-from src.detailed_functions import rotate_vector_about_z, apply_transform, orient_disc_with_manteo, translate, normalize
+from src.geometry import rotate_vector_about_z, apply_transform, orient_disc_with_manteo, translate, normalize
 
 rv = rotate_vector_about_z((1,0,0), 90)
 assert rv == (0.0, 1.0, 0.0)

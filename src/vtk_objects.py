@@ -1,5 +1,8 @@
 import vtk
-import src.detailed_functions as detailed_functions
+import src.geometry as geometry
+import src.colors as colors
+import src.group_points as group_points
+import src.actors as actors
 from vtk.util import numpy_support #type: ignore
 
 ##################################################################
@@ -75,48 +78,55 @@ def prepare_disc_template(radius, resolution):
     return base_disc_output
 
 def build_marker_geometries(points, base_disc, transformed_fn):
-    """ Create combined disc and line geometries for all points of a given marker"""
+    """ Create combined disc geometry and a list of line polydata for all points of a given marker.
+        Returns: (append_discs_polydata, list_of_line_polydata)
+    """
     append_discs = vtk.vtkAppendPolyData()
-    append_lines = vtk.vtkAppendPolyData()
+    line_polydatas = []  # collect each line polydata (strike and dip as separate entries)
 
     for (x, y, z, azimuth, dip) in points:
-        disc_geom, line_az_geom, line_dip_geom = transformed_fn(base_disc, x, y, z, azimuth, dip)
+        disc_geom, strike_geom, dip_geom = transformed_fn(base_disc, x, y, z, azimuth, dip)
         append_discs.AddInputData(disc_geom)
-        append_lines.AddInputData(line_az_geom)
-        append_lines.AddInputData(line_dip_geom)
+        # collect the strike and dip separate polydata objects (already translated by transformed_fn)
+        line_polydatas.append(strike_geom)
+        line_polydatas.append(dip_geom)
 
     append_discs.Update()
-    append_lines.Update()
-    
-    return append_discs.GetOutput(), append_lines.GetOutput()
+    discs_out = append_discs.GetOutput()
+
+    # Optionally merge/clean discs_out here (not necessary)
+    return discs_out, line_polydatas
     
 
 def create_disc_line_actors(polydata, unique_markers, radius=200, resolution=40,
                                line_color=(0, 0, 0), line_width=2.0):
-    """ Build actors for discs and lines """
+    """ Build actors for discs and lines (now creating visible line actors as tubes) """
     n_colors = len(unique_markers)
-    color_table = detailed_functions.generate_distinct_colors(n_colors)
-    marker_to_points = detailed_functions.group_points_by_marker(polydata, n_colors)
-    
+    color_table = colors.generate_distinct_colors(n_colors)
+    marker_to_points = group_points.group_points_by_marker(polydata, n_colors)
+
     base_disc = prepare_disc_template(radius, resolution)
-    actors = []
-    
+    actors_ = []
+
     for marker_index, points in marker_to_points.items():
         if not points:
             continue
 
-        disc_geom, line_geom = build_marker_geometries(
-            points, base_disc, detailed_functions.create_transformed_geometry)
-        
+        disc_geom, line_polydatas = build_marker_geometries(points, base_disc, geometry.create_transformed_geometry)
+
         # Disc actor
         disc_color = color_table.GetTableValue(marker_index)
-        disc_actor = detailed_functions.create_actor(disc_geom, color=disc_color, line=False)
-        line_actor = detailed_functions.create_actor(line_geom, color=line_color, line=True, line_width=line_width)
+        disc_actor = actors.create_actor(disc_geom, color=disc_color, line=False)
+        actors_.append(disc_actor)
 
-        actors.append(disc_actor)
-        actors.append(line_actor)
+        # Create separate actors for each line polydata (strike and dip)
+        for line_pd in line_polydatas:
+            # create tube-based line actor for visibility
+            line_actor = actors.create_actor(line_pd, color=line_color, line=True, line_width=line_width)
+            actors_.append(line_actor)
 
-    return actors
+    return actors_
+
 
 
 ##################################################################
@@ -162,7 +172,7 @@ def create_well_label(well_name, top_row):
     label.SetPosition(top_row["X"], top_row["Y"], top_row["Z"])
     label.GetTextProperty().SetColor(0.1, 0.1, 0.1)
     label.GetTextProperty().BoldOn()
-    label.GetTextProperty().SetFontSize(14)
+    label.GetTextProperty().SetFontSize(10)
     
     return label
         

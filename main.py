@@ -30,7 +30,6 @@ def main():
     corner_x = max_x
     corner_y = min_y
     corner_z = min_z
-
     offset = 0.2 * (max_x - min_x)
     corner_x += offset
     corner_y -= offset

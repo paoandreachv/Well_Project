@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import vtk
 import numpy as np
-from src.detailed_functions import orient_disc_with_manteo, create_transformed_geometry
+from src.geometry import orient_disc_with_manteo, create_transformed_geometry
 from src.well_data import load_well_data
 
 data = load_well_data()
