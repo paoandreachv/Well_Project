@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np  
 import vtk
 from src.well_data import load_well_data, load_well_trajectories
-from src.vtk_objects import create_points, create_well_line_actors
+from src.vtk_objects import create_points
+from src.actors import create_well_line_actors
 from vtk.util import numpy_support #type: ignore
 
 well_data = load_well_data()

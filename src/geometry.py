@@ -1,6 +1,4 @@
-import random
-import vtk
-import math
+import vtk, math
 
 ##################################################################
 # -----------------------USEFUL FUNCTIONS----------------------- #
@@ -142,9 +140,9 @@ def orient_disc_with_manteo(polydata, azimuth, dip, radius=200):
     (s0, s1), (d0, d1) = compute_line_endpoints(radius)
 
     # Convert to global
-    strike_pd = build_line(local_to_global(e1, e2, e3, s0), local_to_global(e1, e2, e3, s1))
+    dipdir_pd = build_line(local_to_global(e1, e2, e3, s0), local_to_global(e1, e2, e3, s1))
     dip_pd    = build_line(local_to_global(e1, e2, e3, d0), local_to_global(e1, e2, e3, d1))
-    return oriented_disc, strike_pd, dip_pd
+    return oriented_disc, dipdir_pd, dip_pd
 
 ##################################################################
 # --------------------TRANSFORM GEOMETRY------------------------ #
@@ -156,10 +154,10 @@ def translate(polydata, x, y, z):
     return apply_transform(polydata, T)
 
 def create_transformed_geometry(base_disc, x, y, z, azimuth, dip):
-    """Moves a disc and its strike and dip lines based on coordinates"""
-    oriented_disc, oriented_strike, oriented_dip = orient_disc_with_manteo(base_disc, azimuth, dip, radius=200)
+    """Moves a disc and its azimuth and dip lines based on coordinates"""
+    oriented_disc, oriented_azimuth, oriented_dip = orient_disc_with_manteo(base_disc, azimuth, dip, radius=200)
     disc_t = translate(oriented_disc, x, y, z)
-    strike_t = translate(oriented_strike, x, y, z)
+    azimuth_t = translate(oriented_azimuth, x, y, z)
     dip_t = translate(oriented_dip, x, y, z)
-    return disc_t, strike_t, dip_t
+    return disc_t, azimuth_t, dip_t
 

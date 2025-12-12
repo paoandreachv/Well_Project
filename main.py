@@ -1,6 +1,7 @@
 import src.well_data as data
 import src.vtk_objects as vtk_objects
 import src.visualization as visualization
+import src.actors as actors
 import src.edges as edges_mod
 
 
@@ -19,7 +20,7 @@ def main():
     # Create geometry
     polydata, unique_markers = vtk_objects.create_points(well_data)
     point_actors = vtk_objects.create_disc_line_actors(polydata, unique_markers)
-    line_actors = vtk_objects.create_well_line_actors(well_trajectories)
+    line_actors = actors.create_well_line_actors(well_trajectories)
     
     # Calculate center of wind rose
     min_x = well_data["X"].min()

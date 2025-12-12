@@ -1,5 +1,4 @@
 import vtk
-from src.visualization import create_renderer, create_render_window, create_interactor
 from vtk.util import numpy_support #type: ignore
 
 def select_points(df):
@@ -13,6 +12,7 @@ def select_points(df):
 def connect_edges_with_potential(df):
     """ Creates a vtkPolyData with connected lines colored according to 'potential' """
     append_filter = vtk.vtkAppendPolyData()
+    added_any = False
 
     for seg_id, group in df.groupby("Seg_id"):
         if len(group) < 2 or seg_id == 0:
@@ -39,8 +39,12 @@ def connect_edges_with_potential(df):
         line_polydata.GetPointData().SetScalars(potential_array)
 
         append_filter.AddInputData(line_polydata)
+        added_any = True
 
-    append_filter.Update()
+    if not added_any:
+        return vtk.vtkPolyData()
+    else:
+        append_filter.Update()
     return append_filter.GetOutput()
 
 
@@ -96,7 +100,6 @@ def select_edges(wd, connect_edges_with_potential, lut):
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         actor.GetProperty().SetLineWidth(2)
-
         return [actor]
 
     except ValueError:
